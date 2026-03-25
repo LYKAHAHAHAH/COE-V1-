@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Printer, ClipboardPaste, Loader2, RefreshCw, FileText, Upload, Image as ImageIcon, Settings, Maximize2, Move, Trash2, X } from 'lucide-react';
+import { Printer, ClipboardPaste, RefreshCw, FileText, Upload, Image as ImageIcon, Settings, Maximize2, Trash2, Loader, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { parsePastedData } from './services/gemini';
 import { CertificateData, CertificateAssets, LogoAsset, DEFAULT_AGENCY, DEFAULT_SIGNATORY, DEFAULT_SIGNATORY_TITLE, DEFAULT_LICENSE, DEFAULT_LOGOS } from './types';
@@ -11,30 +11,24 @@ const CertificateContent = ({
   isEditingLogos = false, 
   updateLogo = () => {},
   isPreview = false,
-  paperSize = 'a4',
-  margins = 'normal'
+  onUpdateData = () => {},
 }: { 
   data: CertificateData; 
   assets: CertificateAssets; 
   isEditingLogos?: boolean;
   updateLogo?: (key: keyof CertificateAssets['logos'], updates: Partial<LogoAsset>) => void;
   isPreview?: boolean;
-  paperSize?: string;
-  margins?: string;
+  onUpdateData?: (updates: Partial<CertificateData>) => void;
 }) => (
-  <div className={`bg-white w-full shadow-2xl flex flex-col relative print:shadow-none print:m-0 font-serif text-neutral-900 print-container ${isPreview ? 'shadow-none' : ''}`}
+  <div className={`bg-white shadow-2xl flex flex-col relative print:shadow-none print:m-0 font-serif text-neutral-900 print-container ${isPreview ? 'shadow-none' : ''}`}
     style={{
-      padding: margins === 'narrow' ? '0.5in' : margins === 'wide' ? '1in 2in' : '0.75in',
-      minHeight: isPreview ? '100%' : (
-        paperSize === 'a4' ? '297mm' : 
-        paperSize === 'letter' ? '11in' : 
-        paperSize === 'legal' ? '14in' : '13in'
-      ),
-      maxWidth: isPreview ? '100%' : (
-        paperSize === 'a4' ? '210mm' : 
-        paperSize === 'letter' ? '8.5in' : 
-        paperSize === 'legal' ? '8.5in' : '8.5in'
-      )
+      padding: '0.75in',
+      width: '210mm',
+      height: '297mm',
+      minWidth: '210mm',
+      minHeight: '297mm',
+      overflow: 'hidden', // No scrolling inside the template
+      boxSizing: 'border-box',
     }}
   >
     {/* Header Logos */}
@@ -42,7 +36,7 @@ const CertificateContent = ({
       {(['logo1', 'logo2', 'logo3', 'logo4'] as const).map((key) => (
         <motion.div
           key={key}
-          drag={isEditingLogos && !isPreview}
+          drag={isEditingLogos}
           dragMomentum={false}
           onDragEnd={(_, info) => {
             updateLogo(key, { 
@@ -56,7 +50,7 @@ const CertificateContent = ({
             width: assets.logos[key].width,
             height: assets.logos[key].height,
           }}
-          className={`relative flex items-center justify-center ${isEditingLogos && !isPreview ? 'cursor-move ring-2 ring-blue-400 ring-offset-4 rounded' : ''}`}
+          className={`relative flex items-center justify-center ${isEditingLogos ? 'cursor-move ring-2 ring-blue-400 ring-offset-4 rounded' : ''}`}
         >
           <img 
             src={assets.logos[key].src} 
@@ -65,7 +59,7 @@ const CertificateContent = ({
             referrerPolicy="no-referrer" 
           />
           
-          {isEditingLogos && !isPreview && (
+          {isEditingLogos && (
             <div className="absolute -bottom-8 left-0 right-0 flex justify-center gap-2 no-print">
               <button 
                 onMouseDown={(e) => e.stopPropagation()}
@@ -87,69 +81,105 @@ const CertificateContent = ({
       ))}
     </div>
 
-    <div className="text-right font-bold text-lg mb-12 pr-4">ANNEX A</div>
+    <div className="text-right font-bold text-lg mb-8 pr-4">ANNEX A</div>
 
-    <div className="text-center mb-16">
+    <div className="text-center mb-12">
       <h3 className="text-xl font-bold underline decoration-1 underline-offset-[4px] uppercase tracking-tight">
         CERTIFICATE OF ELIGIBILITY (INDIGENCY)
       </h3>
     </div>
 
-    <div className="space-y-12 text-[1.15rem] leading-[1.6]">
+    <div className="space-y-10 text-[1.1rem] leading-[1.5]">
       <div className="flex items-end gap-2 relative">
         <span className="whitespace-nowrap">This is certify that</span>
-        <div className="flex-1 border-b border-black text-center font-bold px-2">
-          {data.patientName || '\u00A0'}
+        <div className="flex-1 border-b border-black text-center font-bold px-2 relative group">
+          <input
+            type="text"
+            value={data.patientName}
+            onChange={(e) => onUpdateData({ patientName: e.target.value })}
+            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            placeholder="[Name of Patient]"
+          />
         </div>
-        <div className="absolute left-[120px] -bottom-6 w-full text-center text-sm text-neutral-600">
+        <div className="absolute left-[120px] -bottom-5 w-full text-center text-[10px] text-neutral-600">
           (Name of Patient)
         </div>
       </div>
 
-      <div className="flex items-end gap-2 relative pt-4">
+      <div className="flex items-end gap-2 relative pt-2">
         <span className="whitespace-nowrap">of</span>
-        <div className="flex-1 border-b border-black text-center font-bold px-2">
-          {data.address || '\u00A0'}
+        <div className="flex-1 border-b border-black text-center font-bold px-2 relative group">
+          <input
+            type="text"
+            value={data.address}
+            onChange={(e) => onUpdateData({ address: e.target.value })}
+            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            placeholder="[Address]"
+          />
         </div>
         <span className="whitespace-nowrap">is an</span>
-        <div className="absolute left-0 -bottom-6 w-full text-center text-sm text-neutral-600 pr-[40px]">
+        <div className="absolute left-0 -bottom-5 w-full text-center text-[10px] text-neutral-600 pr-[40px]">
           (Address)
         </div>
       </div>
 
-      <div className="flex items-end gap-2 pt-4">
+      <div className="flex items-end gap-2 pt-2">
         <span className="whitespace-nowrap">indigent/needy patient with a classification of</span>
-        <div className="flex-1 border-b border-black text-center font-bold px-2">
-          {data.classification || '\u00A0'}
+        <div className="flex-1 border-b border-black text-center font-bold px-2 relative group">
+          <input
+            type="text"
+            value={data.classification}
+            onChange={(e) => onUpdateData({ classification: e.target.value })}
+            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            placeholder="[Classification]"
+          />
         </div>
         <span>.</span>
       </div>
 
-      <p className="pt-4">
+      <p className="pt-2">
         This certification is issued as a requirement for seeking financial and medical assistance from the Malasakit Center especially for the following assistance/s or service/s:
       </p>
 
-      <div className="border-b border-black min-h-[3rem] font-bold text-center flex items-center justify-center">
-        {data.assistanceType || '\u00A0'}
+      <div className="border-b border-black min-h-[2.5rem] font-bold text-center flex items-center justify-center relative group">
+        <input
+          type="text"
+          value={data.assistanceType}
+          onChange={(e) => onUpdateData({ assistanceType: e.target.value })}
+          className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+          placeholder="[Assistance Type]"
+        />
       </div>
 
-      <div className="flex items-end gap-2 relative pt-4">
+      <div className="flex items-end gap-2 relative pt-2">
         <span className="whitespace-nowrap">from</span>
-        <div className="flex-1 text-center font-bold px-2 uppercase border-b border-black">
-          {data.agencyName}
+        <div className="flex-1 text-center font-bold px-2 uppercase border-b border-black relative group">
+          <input
+            type="text"
+            value={data.agencyName}
+            onChange={(e) => onUpdateData({ agencyName: e.target.value })}
+            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded uppercase"
+            placeholder="[Agency Name]"
+          />
         </div>
-        <div className="absolute left-0 -bottom-6 w-full text-center text-sm text-neutral-600">
+        <div className="absolute left-0 -bottom-5 w-full text-center text-[10px] text-neutral-600">
           (Name of Participating Agency)
         </div>
       </div>
 
-      <div className="flex items-end gap-2 pt-8">
+      <div className="flex items-end gap-2 pt-6">
         <span className="whitespace-nowrap">This Certification is issued on</span>
         <div className="flex-1 relative">
-          <div className="border-b border-black text-center font-bold px-2">
-            {data.issuanceDate || '\u00A0'}
+          <div className="border-b border-black text-center font-bold px-2 relative group">
+            <input
+              type="text"
+              value={data.issuanceDate}
+              onChange={(e) => onUpdateData({ issuanceDate: e.target.value })}
+              className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+              placeholder="[Date]"
+            />
           </div>
-          <div className="absolute left-0 right-0 -bottom-6 text-center text-sm text-neutral-600">
+          <div className="absolute left-0 right-0 -bottom-5 text-center text-[10px] text-neutral-600">
             (Date)
           </div>
         </div>
@@ -157,22 +187,46 @@ const CertificateContent = ({
       </div>
     </div>
 
-    <div className="mt-auto pt-16 relative">
-      <p className="text-lg mb-12">Issued by:</p>
+    <div className="mt-auto pt-12 relative">
+      <p className="text-lg mb-8">Issued by:</p>
       
-      <div className="relative mt-12">
+      <div className="relative mt-8">
         {/* E-Signature */}
         {assets.signature && (
           <img 
             src={assets.signature} 
             alt="Signature" 
-            className="absolute -top-20 left-4 h-28 w-auto pointer-events-none"
+            className="absolute -top-16 left-4 h-24 w-auto pointer-events-none"
           />
         )}
         
-        <p className="font-bold text-lg uppercase underline decoration-1 underline-offset-2">{data.signatoryName}</p>
-        <p className="text-sm leading-tight max-w-md">Signature over Name of the Head of the Medical Social Work Department</p>
-        <p className="text-sm">License No. <span className="font-bold">{data.licenseNo}</span></p>
+        <div className="relative group">
+          <input
+            type="text"
+            value={data.signatoryName}
+            onChange={(e) => onUpdateData({ signatoryName: e.target.value })}
+            className="w-full bg-transparent font-bold text-lg uppercase underline decoration-1 underline-offset-2 outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            placeholder="[Signatory Name]"
+          />
+        </div>
+        <div className="relative group">
+          <input
+            type="text"
+            value={data.signatoryTitle}
+            onChange={(e) => onUpdateData({ signatoryTitle: e.target.value })}
+            className="w-full bg-transparent text-xs leading-tight max-w-md outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            placeholder="[Signatory Title]"
+          />
+        </div>
+        <p className="text-xs">License No. <span className="font-bold relative group">
+          <input
+            type="text"
+            value={data.licenseNo}
+            onChange={(e) => onUpdateData({ licenseNo: e.target.value })}
+            className="inline-block bg-transparent font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded w-auto"
+            placeholder="[License No]"
+          />
+        </span></p>
       </div>
     </div>
   </div>
@@ -196,67 +250,59 @@ export default function App() {
   const [isEditingLogos, setIsEditingLogos] = useState(false);
   const [isEditingSignatory, setIsEditingSignatory] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [zoom, setZoom] = useState(55);
-  const [printSettings, setPrintSettings] = useState({
-    paperSize: 'a4',
-    orientation: 'portrait',
-    copies: 1,
-    printer: 'System Default',
-    margins: 'normal'
-  });
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // Update print styles whenever settings change
-  React.useEffect(() => {
-    const styleId = 'dynamic-print-settings';
-    let styleElement = document.getElementById(styleId) as HTMLStyleElement;
-    if (!styleElement) {
-      styleElement = document.createElement('style');
-      styleElement.id = styleId;
-      document.head.appendChild(styleElement);
+  const fitToPage = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      const containerHeight = ref.current.clientHeight;
+      const containerWidth = ref.current.clientWidth;
+      const padding = 80;
+      const availableHeight = containerHeight - padding;
+      const availableWidth = containerWidth - padding;
+      
+      const a4WidthPx = 210 * 3.78;
+      const a4HeightPx = 297 * 3.78;
+      
+      const scaleHeight = availableHeight / a4HeightPx;
+      const scaleWidth = availableWidth / a4WidthPx;
+      
+      const newZoom = Math.floor(Math.min(scaleHeight, scaleWidth) * 100);
+      setZoom(Math.max(20, Math.min(100, newZoom)));
     }
+  };
 
-    const sizeMap: Record<string, string> = {
-      'letter': '8.5in 11in',
-      'a4': '210mm 297mm',
-      'legal': '8.5in 14in',
-      'folio': '8.5in 13in'
-    };
+  const handlePrint = () => {
+    // Save current state to localStorage immediately before printing
+    localStorage.setItem('certificate_data', JSON.stringify(data));
+    localStorage.setItem('certificate_assets', JSON.stringify(assets));
 
-    const pageSize = sizeMap[printSettings.paperSize] || 'auto';
-    const marginMap: Record<string, string> = {
-      'normal': '0.75in',
-      'narrow': '0.5in',
-      'wide': '1in 2in'
-    };
-    const pageMargins = marginMap[printSettings.margins] || '0.75in';
+    // Use the standard window.print() which is non-destructive
+    // The CSS in index.css handles hiding the UI and showing only the certificate
+    window.print();
+  };
 
-    styleElement.innerHTML = `
-      @media print {
-        @page {
-          size: ${pageSize} ${printSettings.orientation};
-          margin: 0;
-        }
-        body {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          background: white !important;
-        }
-        .no-print {
-          display: none !important;
-        }
-        .print-container {
-          padding: ${pageMargins} !important;
-          margin: 0 auto !important;
-          box-shadow: none !important;
-          border: none !important;
-          width: 100% !important;
-          height: auto !important;
-          min-height: 0 !important;
-        }
+  // Initial fit and resize listener for main preview
+  React.useEffect(() => {
+    fitToPage(previewContainerRef);
+    const handleResize = () => fitToPage(previewContainerRef);
+    
+    // Add Ctrl+P listener
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        handlePrint();
       }
-    `;
-  }, [printSettings]);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
   const [assets, setAssets] = useState<CertificateAssets>({
     signature: null,
     logos: {
@@ -274,6 +320,23 @@ export default function App() {
     logo3: useRef<HTMLInputElement>(null),
     logo4: useRef<HTMLInputElement>(null),
   };
+
+  // Load state from localStorage on mount
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('certificate_data');
+    const savedAssets = localStorage.getItem('certificate_assets');
+    if (savedData) setData(JSON.parse(savedData));
+    if (savedAssets) setAssets(JSON.parse(savedAssets));
+  }, []);
+
+  // Save state to localStorage on change
+  React.useEffect(() => {
+    localStorage.setItem('certificate_data', JSON.stringify(data));
+  }, [data]);
+
+  React.useEffect(() => {
+    localStorage.setItem('certificate_assets', JSON.stringify(assets));
+  }, [assets]);
 
   const updateLogo = (key: keyof CertificateAssets['logos'], updates: Partial<LogoAsset>) => {
     setAssets(prev => ({
@@ -353,20 +416,6 @@ export default function App() {
     }
   };
 
-  const handlePrint = () => {
-    setIsPrintModalOpen(true);
-  };
-
-  const executePrint = () => {
-    // Directly call print. This is the most reliable way as it's 
-    // triggered directly by a user click event.
-    window.focus();
-    window.print();
-    
-    // Close modal after the print dialog is closed
-    setIsPrintModalOpen(false);
-  };
-
   const handleReset = () => {
     setPastedText('');
     setData({
@@ -384,10 +433,13 @@ export default function App() {
     setIsEditingSignatory(false);
   };
 
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-zinc-900 font-sans text-zinc-100">
-      {/* UI Header - Hidden on Print */}
-      <header className="no-print bg-zinc-800 border-b border-zinc-700 py-4 px-6 sticky top-0 z-10 shadow-sm">
+      <div className="no-print">
+        {/* UI Header - Hidden on Print */}
+        <header className="bg-zinc-800 border-b border-zinc-700 py-4 px-6 sticky top-0 z-10 shadow-sm top-nav">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
@@ -413,20 +465,35 @@ export default function App() {
               Reset
             </button>
             <button 
+              onClick={() => window.open(window.location.href, '_blank')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+              title="Open in a new tab for better printing"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open in New Tab
+            </button>
+            <button 
+              onClick={() => setIsHelpOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-md transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              Help
+            </button>
+            <button 
               onClick={handlePrint}
-              disabled={!data.patientName}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="flex items-center gap-2 px-8 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+              title="Open browser print dialog (Ctrl+P)"
             >
               <Printer className="w-4 h-4" />
-              Print Certificate
+              Print
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 print:block print:p-0 print:m-0 print:max-w-none">
-        {/* Input Section - Hidden on Print */}
-        <section className="no-print lg:col-span-4 space-y-6">
+      <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Input Section */}
+        <section className="lg:col-span-4 space-y-6 sidebar edit-details-panel">
           {/* Data Extraction */}
           <div className="bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-700">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2">
@@ -444,7 +511,7 @@ export default function App() {
               disabled={isParsing || !pastedText.trim()}
               className="w-full mt-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isParsing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Auto-Fill Data'}
+              {isParsing ? <Loader className="w-4 h-4 animate-spin" /> : 'Auto-Fill Data'}
             </button>
           </div>
 
@@ -628,28 +695,120 @@ export default function App() {
         </section>
 
         {/* Preview Section */}
-        <section className="lg:col-span-8 flex justify-center print:block print:w-full">
-          <div className="flex-1 bg-zinc-900 p-8 overflow-auto flex justify-center print:p-0 print:bg-white print:block">
-            <CertificateContent 
-              data={data} 
-              assets={assets} 
-              isEditingLogos={isEditingLogos} 
-              updateLogo={updateLogo} 
-              paperSize={printSettings.paperSize}
-              margins={printSettings.margins}
-            />
+        <section className="lg:col-span-8 flex flex-col h-[calc(100vh-160px)]">
+          <div className="flex items-center justify-between mb-2 px-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Live Preview (A4)</h2>
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase">Zoom: {zoom}%</span>
+              <input 
+                type="range" 
+                min="20" 
+                max="100" 
+                value={zoom}
+                onChange={(e) => setZoom(parseInt(e.target.value))}
+                className="w-24 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+              <button 
+                onClick={() => fitToPage(previewContainerRef)}
+                className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase transition-colors"
+              >
+                Fit to Page
+              </button>
+            </div>
+          </div>
+          <div 
+            ref={previewContainerRef}
+            className="flex-1 bg-zinc-950 rounded-xl border border-zinc-800 overflow-auto flex items-start justify-center p-8 custom-scrollbar relative"
+          >
+            <div 
+              className="transition-all duration-300 ease-in-out origin-top"
+              style={{
+                transform: `scale(${zoom / 100})`,
+                marginBottom: '50px'
+              }}
+            >
+              <CertificateContent 
+                data={data} 
+                assets={assets} 
+                isEditingLogos={isEditingLogos} 
+                updateLogo={updateLogo} 
+                isPreview={true}
+                onUpdateData={(updates) => setData(prev => ({ ...prev, ...updates }))}
+              />
+            </div>
           </div>
         </section>
       </main>
 
-      {/* Footer - Hidden on Print */}
-      <footer className="no-print py-8 text-center text-neutral-400 text-xs">
+      {/* Footer */}
+      <footer className="py-8 text-center text-neutral-400 text-xs">
         <p>© 2026 Indigency Certificate Generator • Powered by Gemini AI</p>
       </footer>
+      {/* Help Modal */}
+      <AnimatePresence>
+        {isHelpOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm no-print">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+            >
+              <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Printer className="w-5 h-5 text-blue-500" />
+                  How Printing Works
+                </h3>
+                <button onClick={() => setIsHelpOpen(false)} className="text-zinc-500 hover:text-white">
+                  <RefreshCw className="w-5 h-5 rotate-45" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4 text-sm text-zinc-300">
+                <div className="flex gap-3">
+                  <div className="bg-blue-500/10 p-2 rounded-lg h-fit">
+                    <Maximize2 className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">1. Automatic Layout</p>
+                    <p>The app uses CSS to hide all buttons and sidebars when printing. Only the A4 certificate will be visible on the paper.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="bg-blue-500/10 p-2 rounded-lg h-fit">
+                    <Printer className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">2. Browser Dialog</p>
+                    <p>Clicking "Print" opens your browser's built-in print window. You can choose to print to a physical printer or "Save as PDF".</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="bg-amber-500/10 p-2 rounded-lg h-fit">
+                    <FileText className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white text-amber-400">Important: Browser Preview</p>
+                    <p>To see the print dialog with the full-page preview (like in Chrome), you must click the "Open in new tab" icon in the top-right of the AI Studio preview frame first.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-zinc-800/50 border-t border-zinc-700 flex justify-end">
+                <button 
+                  onClick={() => setIsHelpOpen(false)}
+                  className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {isConfirmingDelete && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm no-print">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -686,278 +845,18 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+      </div>
 
-      {/* Print Settings Modal */}
-      <AnimatePresence>
-        {isPrintModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md no-print">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.98, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: 10 }}
-              className="bg-[#1e1e1e] border border-zinc-700 rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col md:flex-row"
-            >
-              {/* Word-like Sidebar */}
-              <div className="w-full md:w-80 flex flex-col border-r border-zinc-700 bg-[#2b2b2b]">
-                <div className="p-6 border-b border-zinc-700">
-                  <h2 className="text-2xl font-light text-white mb-6">Print</h2>
-                  
-                  <button 
-                    onClick={executePrint}
-                    className="w-32 h-32 bg-[#0078d4] hover:bg-[#106ebe] text-white rounded flex flex-col items-center justify-center gap-2 transition-colors shadow-lg group"
-                  >
-                    <Printer className="w-10 h-10 group-hover:scale-110 transition-transform" />
-                    <span className="text-sm font-medium">Print</span>
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                  {/* Printer Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Printer</h3>
-                      <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded border border-blue-500/30">System Managed</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <select
-                          value={printSettings.printer}
-                          onChange={(e) => setPrintSettings({ ...printSettings, printer: e.target.value })}
-                          className="w-full bg-[#3b3b3b] border border-zinc-600 rounded px-3 py-2.5 text-white focus:outline-none focus:ring-1 focus:ring-[#0078d4] transition-all text-sm appearance-none cursor-not-allowed"
-                          disabled
-                        >
-                          <option value="System Default">Your Connected Printer (System Default)</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                          <Settings className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-zinc-500 leading-relaxed">
-                        For security, browsers require you to select your specific physical printer in the <span className="text-zinc-300 font-medium">System Print Dialog</span> which will appear after clicking Print.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Settings Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Settings</h3>
-                    
-                    <div className="space-y-3">
-                      {/* Orientation */}
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-zinc-500 ml-1">Orientation</label>
-                        <select
-                          value={printSettings.orientation}
-                          onChange={(e) => setPrintSettings({ ...printSettings, orientation: e.target.value as any })}
-                          className="w-full bg-[#3b3b3b] border border-zinc-600 rounded px-3 py-2.5 text-white text-sm appearance-none"
-                        >
-                          <option value="portrait">Portrait Orientation</option>
-                          <option value="landscape">Landscape Orientation</option>
-                        </select>
-                      </div>
-
-                      {/* Paper Size */}
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-zinc-500 ml-1">Paper Size</label>
-                        <select
-                          value={printSettings.paperSize}
-                          onChange={(e) => setPrintSettings({ ...printSettings, paperSize: e.target.value })}
-                          className="w-full bg-[#3b3b3b] border border-zinc-600 rounded px-3 py-2.5 text-white text-sm appearance-none"
-                        >
-                          <option value="a4">A4 (21 cm x 29.7 cm)</option>
-                          <option value="letter">Letter (21.59 cm x 27.94 cm)</option>
-                          <option value="legal">Legal (21.59 cm x 35.56 cm)</option>
-                          <option value="folio">Folio (21.59 cm x 33.02 cm)</option>
-                        </select>
-                      </div>
-
-                      {/* Margins */}
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-zinc-500 ml-1">Margins</label>
-                        <select
-                          value={printSettings.margins}
-                          onChange={(e) => setPrintSettings({ ...printSettings, margins: e.target.value })}
-                          className="w-full bg-[#3b3b3b] border border-zinc-600 rounded px-3 py-2.5 text-white text-sm appearance-none"
-                        >
-                          <option value="normal">Normal (1" all sides)</option>
-                          <option value="narrow">Narrow (0.5" all sides)</option>
-                          <option value="wide">Wide (1" top/bottom, 2" sides)</option>
-                        </select>
-                      </div>
-
-                      {/* Copies */}
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-zinc-500 ml-1">Copies</label>
-                        <div className="flex items-center gap-2">
-                          <input 
-                            type="number" 
-                            min="1"
-                            value={printSettings.copies}
-                            onChange={(e) => setPrintSettings({ ...printSettings, copies: parseInt(e.target.value) || 1 })}
-                            className="flex-1 bg-[#3b3b3b] border border-zinc-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Troubleshooting Section */}
-                  <div className="pt-4 border-t border-zinc-700/50 space-y-3">
-                    <p className="text-[10px] text-zinc-500 leading-relaxed">
-                      <span className="font-bold text-zinc-400">Note:</span> If your connected printer doesn't appear in the next window, ensure it is turned on and connected via USB or Wi-Fi.
-                    </p>
-                    
-                    {window.self !== window.top && (
-                      <button 
-                        onClick={() => window.open(window.location.href, '_blank')}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-medium rounded border border-zinc-700 transition-colors"
-                      >
-                        <Maximize2 className="w-3 h-3" />
-                        Open in New Tab for Better Printer Access
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-4 bg-[#252525] border-t border-zinc-700">
-                  <button 
-                    onClick={() => setIsPrintModalOpen(false)}
-                    className="w-full px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-700 rounded transition-colors"
-                  >
-                    Close Backstage
-                  </button>
-                </div>
-              </div>
-
-              {/* Preview Panel - Fixed size container */}
-              <div className="flex-1 bg-[#444444] relative flex flex-col overflow-hidden">
-                <div className="absolute top-4 left-6 z-10">
-                  <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">Live Preview</span>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => setIsPrintModalOpen(false)}
-                  className="absolute top-4 right-6 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors text-white/70 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                
-                {/* Scrollable Preview Area */}
-                <div className="flex-1 overflow-auto p-12 flex items-start justify-center custom-scrollbar bg-[#333333]">
-                  <div 
-                    className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-500 ease-in-out relative"
-                    style={{
-                      width: printSettings.paperSize === 'letter' ? '8.5in' :
-                             printSettings.paperSize === 'a4' ? '210mm' :
-                             printSettings.paperSize === 'legal' ? '8.5in' : 
-                             printSettings.paperSize === 'folio' ? '8.5in' : '210mm',
-                      height: printSettings.paperSize === 'letter' ? '11in' :
-                              printSettings.paperSize === 'a4' ? '297mm' :
-                              printSettings.paperSize === 'legal' ? '14in' : 
-                              printSettings.paperSize === 'folio' ? '13in' : '297mm',
-                      transform: `scale(${zoom / 100})`,
-                      transformOrigin: 'top center',
-                      marginBottom: '100px' // Space at bottom for scroll
-                    }}
-                  >
-                    {/* Landscape Rotation Wrapper */}
-                    <div 
-                      className="w-full h-full transition-transform duration-500"
-                      style={{
-                        transform: printSettings.orientation === 'landscape' ? 'rotate(-90deg)' : 'none',
-                        transformOrigin: 'center center',
-                        width: printSettings.orientation === 'landscape' ? '141.4%' : '100%',
-                        height: printSettings.orientation === 'landscape' ? '70.7%' : '100%',
-                        position: printSettings.orientation === 'landscape' ? 'absolute' : 'relative',
-                        top: printSettings.orientation === 'landscape' ? '15%' : '0',
-                        left: printSettings.orientation === 'landscape' ? '-20%' : '0',
-                      }}
-                    >
-                      <CertificateContent 
-                        data={data} 
-                        assets={assets} 
-                        isPreview={true} 
-                        paperSize={printSettings.paperSize}
-                        margins={printSettings.margins}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status Bar */}
-                <div className="h-8 bg-[#0078d4] flex items-center justify-between px-4 text-[11px] text-white font-medium">
-                  <div className="flex items-center gap-4">
-                    <span>Page 1 of 1</span>
-                    <span className="opacity-70">|</span>
-                    <span className="uppercase">{printSettings.paperSize}</span>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <span className="opacity-70">Zoom: {zoom}%</span>
-                      <input 
-                        type="range" 
-                        min="20" 
-                        max="100" 
-                        value={zoom}
-                        onChange={(e) => setZoom(parseInt(e.target.value))}
-                        className="w-24 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Dynamic Print Styles */}
-      <style>
-        {`
-          @media print {
-            @page {
-              size: ${
-                printSettings.paperSize === 'letter' ? '8.5in 11in' :
-                printSettings.paperSize === 'a4' ? '210mm 297mm' :
-                printSettings.paperSize === 'legal' ? '8.5in 14in' :
-                printSettings.paperSize === 'folio' ? '8.5in 13in' : 'letter'
-              } ${printSettings.orientation};
-              margin: 0;
-            }
-            .print-container {
-              width: ${
-                printSettings.paperSize === 'letter' ? '8.5in' :
-                printSettings.paperSize === 'a4' ? '210mm' :
-                printSettings.paperSize === 'legal' ? '8.5in' :
-                printSettings.paperSize === 'folio' ? '8.5in' : '8.5in'
-              } !important;
-              height: ${
-                printSettings.paperSize === 'letter' ? '11in' :
-                printSettings.paperSize === 'a4' ? '297mm' :
-                printSettings.paperSize === 'legal' ? '14in' :
-                printSettings.paperSize === 'folio' ? '13in' : '11in'
-              } !important;
-              ${printSettings.orientation === 'landscape' ? `
-                width: ${
-                  printSettings.paperSize === 'letter' ? '11in' :
-                  printSettings.paperSize === 'a4' ? '297mm' :
-                  printSettings.paperSize === 'legal' ? '14in' :
-                  printSettings.paperSize === 'folio' ? '13in' : '11in'
-                } !important;
-                height: ${
-                  printSettings.paperSize === 'letter' ? '8.5in' :
-                  printSettings.paperSize === 'a4' ? '210mm' :
-                  printSettings.paperSize === 'legal' ? '8.5in' :
-                  printSettings.paperSize === 'folio' ? '8.5in' : '8.5in'
-                } !important;
-              ` : ''}
-            }
-          }
-        `}
-      </style>
+      {/* Print-only container */}
+      <div className="print-only" id="certificate-preview-id">
+        <div className="certificate-preview">
+          <CertificateContent 
+            data={data} 
+            assets={assets} 
+            isPreview={false}
+          />
+        </div>
+      </div>
     </div>
   );
 }
