@@ -1,0 +1,5 @@
+{
+  "name": "Indigency Certificate Generator",
+  "description": "Automatically generate and print Certificates of Eligibility (Indigency) by pasting patient data.",
+  "requestFramePermissions": []
+}
