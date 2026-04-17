@@ -10,24 +10,25 @@ const CertificateContent = ({
   assets, 
   isEditingLogos = false, 
   updateLogo = () => {},
-  isPreview = false,
+  isPrintVersion = false,
   onUpdateData = () => {},
 }: { 
   data: CertificateData; 
   assets: CertificateAssets; 
   isEditingLogos?: boolean;
   updateLogo?: (key: keyof CertificateAssets['logos'], updates: Partial<LogoAsset>) => void;
-  isPreview?: boolean;
+  isPrintVersion?: boolean;
   onUpdateData?: (updates: Partial<CertificateData>) => void;
 }) => (
-  <div className={`bg-white shadow-2xl flex flex-col relative print:shadow-none print:m-0 font-serif text-neutral-900 print-container ${isPreview ? 'shadow-none' : ''}`}
+  <div 
+    className={`bg-white flex flex-col relative font-serif text-neutral-900 print-container ${isPrintVersion ? 'shadow-none' : 'shadow-2xl border border-neutral-200'}`}
     style={{
       padding: '0.75in',
       width: '210mm',
       height: '297mm',
       minWidth: '210mm',
       minHeight: '297mm',
-      overflow: 'hidden', // No scrolling inside the template
+      overflow: 'hidden',
       boxSizing: 'border-box',
     }}
   >
@@ -85,7 +86,7 @@ const CertificateContent = ({
 
     <div className="text-center mb-12">
       <h3 className="text-xl font-bold underline decoration-1 underline-offset-[4px] uppercase tracking-tight">
-        CERTIFICATE OF ELIGIBILITY (INDIGENCY)
+        CERTIFICATE OF ELIGIBILITY
       </h3>
     </div>
 
@@ -273,12 +274,9 @@ export default function App() {
   };
 
   const handlePrint = () => {
-    // Save current state to localStorage immediately before printing
-    localStorage.setItem('certificate_data', JSON.stringify(data));
-    localStorage.setItem('certificate_assets', JSON.stringify(assets));
-
-    // Use the standard window.print() which is non-destructive
-    // The CSS in index.css handles hiding the UI and showing only the certificate
+    // Explicitly focus the window to ensure the print dialog targets the correct context
+    window.focus();
+    // Trigger the native browser print dialog (Chrome/Edge/Safari/Firefox)
     window.print();
   };
 
@@ -436,10 +434,10 @@ export default function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-zinc-900 font-sans text-zinc-100">
+    <div className="min-h-screen bg-[#121212] font-sans text-zinc-100 selection:bg-blue-500/30">
       <div className="no-print">
         {/* UI Header - Hidden on Print */}
-        <header className="bg-zinc-800 border-b border-zinc-700 py-4 px-6 sticky top-0 z-10 shadow-sm top-nav">
+        <header className="bg-[#1e1e1e] border-b border-zinc-700 py-4 px-6 sticky top-0 z-50 shadow-sm top-nav">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
@@ -465,18 +463,10 @@ export default function App() {
               Reset
             </button>
             <button 
-              onClick={() => window.open(window.location.href, '_blank')}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
-              title="Open in a new tab for better printing"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open in New Tab
-            </button>
-            <button 
               onClick={() => setIsHelpOpen(true)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-md transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <FileText className="w-4 h-4" />
               Help
             </button>
             <button 
@@ -495,8 +485,8 @@ export default function App() {
         {/* Input Section */}
         <section className="lg:col-span-4 space-y-6 sidebar edit-details-panel">
           {/* Data Extraction */}
-          <div className="bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-700">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2">
+          <div className="bg-[#1e1e1e] p-6 rounded-xl shadow-sm border border-zinc-700 space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-2 flex items-center gap-2">
               <ClipboardPaste className="w-4 h-4" />
               Paste Patient Data
             </h2>
@@ -516,7 +506,7 @@ export default function App() {
           </div>
 
           {/* Asset Uploads */}
-          <div className="bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-700 space-y-4">
+          <div className="bg-[#1e1e1e] p-6 rounded-xl shadow-sm border border-zinc-700 space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-2 flex items-center gap-2">
               <Upload className="w-4 h-4" />
               Upload Assets
@@ -581,7 +571,7 @@ export default function App() {
           </div>
 
           {/* Manual Edit */}
-          <div className="bg-zinc-800 p-6 rounded-xl shadow-sm border border-zinc-700 space-y-4">
+          <div className="bg-[#1e1e1e] p-6 rounded-xl shadow-sm border border-zinc-700 space-y-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Edit Details</h2>
               <button
@@ -732,7 +722,7 @@ export default function App() {
                 assets={assets} 
                 isEditingLogos={isEditingLogos} 
                 updateLogo={updateLogo} 
-                isPreview={true}
+                isPrintVersion={false}
                 onUpdateData={(updates) => setData(prev => ({ ...prev, ...updates }))}
               />
             </div>
@@ -769,8 +759,8 @@ export default function App() {
                     <Maximize2 className="w-4 h-4 text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-white">1. Automatic Layout</p>
-                    <p>The app uses CSS to hide all buttons and sidebars when printing. Only the A4 certificate will be visible on the paper.</p>
+                    <p className="font-semibold text-white">1. Direct Printing</p>
+                    <p>Clicking "Print" or pressing <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px]">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px]">P</kbd> opens the native Chrome print dialog directly.</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -778,8 +768,8 @@ export default function App() {
                     <Printer className="w-4 h-4 text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-white">2. Browser Dialog</p>
-                    <p>Clicking "Print" opens your browser's built-in print window. You can choose to print to a physical printer or "Save as PDF".</p>
+                    <p className="font-semibold text-white">2. Standard Shortcut</p>
+                    <p>You can press <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px]">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[10px]">P</kbd> at any time to trigger the Chrome print dialog.</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -787,8 +777,8 @@ export default function App() {
                     <FileText className="w-4 h-4 text-amber-500" />
                   </div>
                   <div>
-                    <p className="font-semibold text-white text-amber-400">Important: Browser Preview</p>
-                    <p>To see the print dialog with the full-page preview (like in Chrome), you must click the "Open in new tab" icon in the top-right of the AI Studio preview frame first.</p>
+                    <p className="font-semibold text-white text-amber-400">3. Print Settings</p>
+                    <p>In the Chrome print popup, set <b>Margins</b> to "None" and <b>Scale</b> to "100" to ensure the A4 template fits perfectly.</p>
                   </div>
                 </div>
               </div>
@@ -848,12 +838,12 @@ export default function App() {
       </div>
 
       {/* Print-only container */}
-      <div className="print-only" id="certificate-preview-id">
+      <div className="print-only" id="printable-certificate">
         <div className="certificate-preview">
           <CertificateContent 
             data={data} 
             assets={assets} 
-            isPreview={false}
+            isPrintVersion={true}
           />
         </div>
       </div>
