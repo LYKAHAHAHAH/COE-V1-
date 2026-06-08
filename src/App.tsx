@@ -97,13 +97,17 @@ const CertificateContent = ({
       <div className="flex items-end gap-2 relative">
         <span className="whitespace-nowrap">This is certify that</span>
         <div className="flex-1 border-b border-black text-center font-bold px-2 relative group">
-          <input
-            type="text"
-            value={data.patientName}
-            onChange={(e) => onUpdateData({ patientName: e.target.value })}
-            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
-            placeholder="[Name of Patient]"
-          />
+          {isPrintVersion ? (
+            <span className="w-full text-center block font-bold leading-none min-h-[1.2rem] pr-2 whitespace-nowrap">{data.patientName || '[Name of Patient]'}</span>
+          ) : (
+            <input
+              type="text"
+              value={data.patientName}
+              onChange={(e) => onUpdateData({ patientName: e.target.value })}
+              className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+              placeholder="[Name of Patient]"
+            />
+          )}
         </div>
         <div className="absolute left-[120px] -bottom-5 w-full text-center text-[10px] text-neutral-600">
           (Name of Patient)
@@ -113,13 +117,17 @@ const CertificateContent = ({
       <div className="flex items-end gap-2 relative pt-2">
         <span className="whitespace-nowrap">of</span>
         <div className="flex-1 border-b border-black text-center font-bold px-2 relative group">
-          <input
-            type="text"
-            value={data.address}
-            onChange={(e) => onUpdateData({ address: e.target.value })}
-            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
-            placeholder="[Address]"
-          />
+          {isPrintVersion ? (
+            <span className="w-full text-center block font-bold leading-none min-h-[1.2rem] pr-2">{data.address || '[Address]'}</span>
+          ) : (
+            <input
+              type="text"
+              value={data.address}
+              onChange={(e) => onUpdateData({ address: e.target.value })}
+              className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+              placeholder="[Address]"
+            />
+          )}
         </div>
         <span className="whitespace-nowrap">is an</span>
         <div className="absolute left-0 -bottom-5 w-full text-center text-[10px] text-neutral-600 pr-[40px]">
@@ -130,13 +138,17 @@ const CertificateContent = ({
       <div className="flex items-end gap-2 pt-2">
         <span className="whitespace-nowrap">indigent/needy patient with a classification of</span>
         <div className="flex-1 border-b border-black text-center font-bold px-2 relative group">
-          <input
-            type="text"
-            value={data.classification}
-            onChange={(e) => onUpdateData({ classification: e.target.value })}
-            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
-            placeholder="[Classification]"
-          />
+          {isPrintVersion ? (
+            <span className="w-full text-center block font-bold leading-none min-h-[1.2rem] pr-2 whitespace-nowrap">{data.classification || '[Classification]'}</span>
+          ) : (
+            <input
+              type="text"
+              value={data.classification}
+              onChange={(e) => onUpdateData({ classification: e.target.value })}
+              className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+              placeholder="[Classification]"
+            />
+          )}
         </div>
         <span>.</span>
       </div>
@@ -146,25 +158,33 @@ const CertificateContent = ({
       </p>
 
       <div className="border-b border-black min-h-[2.5rem] font-bold text-center flex items-center justify-center relative group">
-        <input
-          type="text"
-          value={data.assistanceType}
-          onChange={(e) => onUpdateData({ assistanceType: e.target.value })}
-          className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
-          placeholder="[Assistance Type]"
-        />
+        {isPrintVersion ? (
+          <span className="w-full text-center block font-bold leading-normal pt-1 min-h-[1.2rem]">{data.assistanceType || '[Assistance Type]'}</span>
+        ) : (
+          <input
+            type="text"
+            value={data.assistanceType}
+            onChange={(e) => onUpdateData({ assistanceType: e.target.value })}
+            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            placeholder="[Assistance Type]"
+          />
+        )}
       </div>
 
       <div className="flex items-end gap-2 relative pt-2">
         <span className="whitespace-nowrap">from</span>
         <div className="flex-1 text-center font-bold px-2 uppercase border-b border-black relative group">
-          <input
-            type="text"
-            value={data.agencyName}
-            onChange={(e) => onUpdateData({ agencyName: e.target.value })}
-            className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded uppercase"
-            placeholder="[Agency Name]"
-          />
+          {isPrintVersion ? (
+            <span className="w-full text-center block font-bold leading-none uppercase min-h-[1.2rem]">{data.agencyName || '[Agency Name]'}</span>
+          ) : (
+            <input
+              type="text"
+              value={data.agencyName}
+              onChange={(e) => onUpdateData({ agencyName: e.target.value })}
+              className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded uppercase"
+              placeholder="[Agency Name]"
+            />
+          )}
         </div>
         <div className="absolute left-0 -bottom-5 w-full text-center text-[10px] text-neutral-600">
           (Name of Participating Agency)
@@ -175,13 +195,17 @@ const CertificateContent = ({
         <span className="whitespace-nowrap">This Certification is issued on</span>
         <div className="flex-1 relative">
           <div className="border-b border-black text-center font-bold px-2 relative group">
-            <input
-              type="text"
-              value={data.issuanceDate}
-              onChange={(e) => onUpdateData({ issuanceDate: e.target.value })}
-              className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
-              placeholder="[Date]"
-            />
+            {isPrintVersion ? (
+              <span className="w-full text-center block font-bold leading-none min-h-[1.2rem]">{data.issuanceDate || '[Date]'}</span>
+            ) : (
+              <input
+                type="text"
+                value={data.issuanceDate}
+                onChange={(e) => onUpdateData({ issuanceDate: e.target.value })}
+                className="w-full bg-transparent text-center font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+                placeholder="[Date]"
+              />
+            )}
           </div>
           <div className="absolute left-0 right-0 -bottom-5 text-center text-[10px] text-neutral-600">
             (Date)
@@ -205,31 +229,43 @@ const CertificateContent = ({
         )}
         
         <div className="relative group">
-          <input
-            type="text"
-            value={data.signatoryName}
-            onChange={(e) => onUpdateData({ signatoryName: e.target.value })}
-            className="w-full bg-transparent font-bold text-lg uppercase outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
-            placeholder="[Signatory Name]"
-          />
+          {isPrintVersion ? (
+            <span className="w-full block font-bold text-lg uppercase leading-normal min-h-[1.4rem]">{data.signatoryName || '[Signatory Name]'}</span>
+          ) : (
+            <input
+              type="text"
+              value={data.signatoryName}
+              onChange={(e) => onUpdateData({ signatoryName: e.target.value })}
+              className="w-full bg-transparent font-bold text-lg uppercase outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+              placeholder="[Signatory Name]"
+            />
+          )}
         </div>
         <div className="relative group text-sm text-neutral-600 leading-tight">
-          <input
-            type="text"
-            value={data.signatoryTitle}
-            onChange={(e) => onUpdateData({ signatoryTitle: e.target.value })}
-            className="w-full bg-transparent text-xs leading-tight max-w-md outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded text-neutral-500"
-            placeholder="[Signatory Title]"
-          />
+          {isPrintVersion ? (
+            <span className="w-full block text-xs leading-normal text-neutral-500 min-h-[1.1rem]">{data.signatoryTitle || '[Signatory Title]'}</span>
+          ) : (
+            <input
+              type="text"
+              value={data.signatoryTitle}
+              onChange={(e) => onUpdateData({ signatoryTitle: e.target.value })}
+              className="w-full bg-transparent text-xs leading-tight max-w-md outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded text-neutral-500"
+              placeholder="[Signatory Title]"
+            />
+          )}
         </div>
         <p className="text-xs text-neutral-500">License No. <span className="font-bold relative group">
-          <input
-            type="text"
-            value={data.licenseNo}
-            onChange={(e) => onUpdateData({ licenseNo: e.target.value })}
-            className="inline-block bg-transparent font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded w-auto text-neutral-700"
-            placeholder="[License No]"
-          />
+          {isPrintVersion ? (
+            <span className="inline-block font-bold text-neutral-700 min-h-[1.1rem]">{data.licenseNo || '[License No]'}</span>
+          ) : (
+            <input
+              type="text"
+              value={data.licenseNo}
+              onChange={(e) => onUpdateData({ licenseNo: e.target.value })}
+              className="inline-block bg-transparent font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded w-auto text-neutral-700"
+              placeholder="[License No]"
+            />
+          )}
         </span></p>
       </div>
     </div>
@@ -565,6 +601,7 @@ export default function App() {
       <html>
         <head>
           <title>Certificate of Eligibility - ${patientName || 'Print'}</title>
+          <base href="${window.location.origin}/">
           ${stylesHtml}
           <style>
             @media print {
