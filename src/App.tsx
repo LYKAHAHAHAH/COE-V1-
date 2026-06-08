@@ -775,7 +775,7 @@ export default function App() {
       try {
         return JSON.parse(saved);
       } catch (e) {
-        console.error("Failed to parse certificate_assets:", e);
+        console.error("Failed to parse certificate_assets from localStorage:", e);
       }
     }
     return {
@@ -797,13 +797,46 @@ export default function App() {
     logo4: useRef<HTMLInputElement>(null),
   };
 
-  // Save state to localStorage on change
+  // Load centralized configuration on mount
+  React.useEffect(() => {
+    async function loadCentralAssets() {
+      try {
+        const response = await fetch("/api/assets-config");
+        if (response.ok) {
+          const result = await response.json();
+          if (result && result.assets) {
+            setAssets(result.assets);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading centralized assets configuration:", err);
+      }
+    }
+    loadCentralAssets();
+  }, []);
+
+  // Save state to localstorage
   React.useEffect(() => {
     localStorage.setItem('certificate_data', JSON.stringify(data));
   }, [data]);
 
+  // Save state to centralized configuration (debounced to prevent spamming during drag operations)
   React.useEffect(() => {
     localStorage.setItem('certificate_assets', JSON.stringify(assets));
+
+    const handler = setTimeout(async () => {
+      try {
+        await fetch("/api/assets-config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assets })
+        });
+      } catch (err) {
+        console.error("Error syncing assets state to central cloud repository:", err);
+      }
+    }, 1000);
+
+    return () => clearTimeout(handler);
   }, [assets]);
 
   const updateLogo = (key: keyof CertificateAssets['logos'], updates: Partial<LogoAsset>) => {
@@ -820,8 +853,30 @@ export default function App() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        updateLogo(key, { src: reader.result as string });
+      reader.onloadend = async () => {
+        const base64Data = reader.result as string;
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image: base64Data,
+              mimeType: file.type,
+              type: key
+            })
+          });
+          if (res.ok) {
+            const result = await res.json();
+            if (result.success && result.url) {
+              updateLogo(key, { src: result.url });
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Cloud upload failed for logo, using base64 fallback:", err);
+        }
+        // Fallback to local base64 if server upload fails
+        updateLogo(key, { src: base64Data });
       };
       reader.readAsDataURL(file);
     }
@@ -860,8 +915,30 @@ export default function App() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setAssets(prev => ({ ...prev, [key]: reader.result as string }));
+      reader.onloadend = async () => {
+        const base64Data = reader.result as string;
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image: base64Data,
+              mimeType: file.type,
+              type: key
+            })
+          });
+          if (res.ok) {
+            const result = await res.json();
+            if (result.success && result.url) {
+              setAssets(prev => ({ ...prev, [key]: result.url }));
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Cloud upload failed for signature, using base64 fallback:", err);
+        }
+        // Fallback to local base64 if server upload fails
+        setAssets(prev => ({ ...prev, [key]: base64Data }));
       };
       reader.readAsDataURL(file);
     }

@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { uploadFile, saveCentralAssets, getCentralAssets } from "./api/storage";
 
 dotenv.config();
 
@@ -145,6 +146,54 @@ app.post("/api/parse-image", async (req, res) => {
   } catch (error: any) {
     console.error("Error with Gemini Image Extraction:", error);
     return res.status(500).json({ error: error.message || "An error occurred while parsing image using Gemini AI." });
+  }
+});
+
+// Serve uploaded assets statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// Assets Central Configuration API (GET/POST)
+app.get("/api/assets-config", async (req, res) => {
+  try {
+    const assets = await getCentralAssets();
+    return res.json({ assets: assets || null });
+  } catch (error: any) {
+    console.error("Express Error (assets-config GET):", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/assets-config", async (req, res) => {
+  try {
+    const { assets } = req.body;
+    if (!assets) {
+      return res.status(400).json({ error: "Missing 'assets' parameter inside request body." });
+    }
+    await saveCentralAssets(assets);
+    return res.json({ success: true, message: "Central assets saved successfully on the server." });
+  } catch (error: any) {
+    console.error("Express Error (assets-config POST):", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/upload", async (req, res) => {
+  try {
+    const { image, mimeType, type } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: "Missing 'image' base64 raw data." });
+    }
+    if (!type) {
+      return res.status(400).json({ error: "Missing upload 'type' descriptor." });
+    }
+
+    const hostUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const url = await uploadFile(image, mimeType || "image/png", type, hostUrl);
+
+    return res.json({ success: true, url });
+  } catch (error: any) {
+    console.error("Express Error (upload POST):", error);
+    return res.status(500).json({ error: error.message });
   }
 });
 
