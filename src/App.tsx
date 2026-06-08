@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Printer, ClipboardPaste, RefreshCw, FileText, Upload, Image as ImageIcon, Settings, Maximize2, Trash2, Loader, ExternalLink } from 'lucide-react';
+import { Printer, ClipboardPaste, RefreshCw, FileText, Upload, Image as ImageIcon, Settings, Maximize2, Trash2, Loader, ExternalLink, Search, Filter, Calendar, History, FolderOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { parsePastedData } from './services/gemini';
-import { CertificateData, CertificateAssets, LogoAsset, DEFAULT_AGENCY, DEFAULT_SIGNATORY, DEFAULT_SIGNATORY_TITLE, DEFAULT_LICENSE, DEFAULT_LOGOS } from './types';
+import { parsePastedData, parsePastedImage } from './services/gemini';
+import { CertificateData, CertificateAssets, LogoAsset, IssuedCOE, DEFAULT_AGENCY, DEFAULT_SIGNATORY, DEFAULT_SIGNATORY_TITLE, DEFAULT_LICENSE, DEFAULT_LOGOS } from './types';
 
 // Reusable Certificate Content Component
 const CertificateContent = ({ 
@@ -23,7 +23,10 @@ const CertificateContent = ({
   <div 
     className={`bg-white flex flex-col relative font-serif text-neutral-900 print-container ${isPrintVersion ? 'shadow-none' : 'shadow-2xl border border-neutral-200'}`}
     style={{
-      padding: '0.75in',
+      paddingTop: '0.02in',
+      paddingBottom: '0.75in',
+      paddingLeft: '0.75in',
+      paddingRight: '0.75in',
       width: '210mm',
       height: '297mm',
       minWidth: '210mm',
@@ -82,15 +85,15 @@ const CertificateContent = ({
       ))}
     </div>
 
-    <div className="text-right font-bold text-lg mb-8 pr-4">ANNEX A</div>
+    <div className="text-right font-bold text-lg mb-2 pr-4">ANNEX A</div>
 
-    <div className="text-center mb-12">
+    <div className="text-center mb-6">
       <h3 className="text-xl font-bold underline decoration-1 underline-offset-[4px] uppercase tracking-tight">
-        CERTIFICATE OF ELIGIBILITY
+        CERTIFICATE OF ELIGIBILITY (INDIGENCY)
       </h3>
     </div>
 
-    <div className="space-y-10 text-[1.1rem] leading-[1.5]">
+    <div className="space-y-5 text-[1.1rem] leading-[1.4]">
       <div className="flex items-end gap-2 relative">
         <span className="whitespace-nowrap">This is certify that</span>
         <div className="flex-1 border-b border-black text-center font-bold px-2 relative group">
@@ -168,7 +171,7 @@ const CertificateContent = ({
         </div>
       </div>
 
-      <div className="flex items-end gap-2 pt-6">
+      <div className="flex items-end gap-2 pt-2">
         <span className="whitespace-nowrap">This Certification is issued on</span>
         <div className="flex-1 relative">
           <div className="border-b border-black text-center font-bold px-2 relative group">
@@ -188,16 +191,16 @@ const CertificateContent = ({
       </div>
     </div>
 
-    <div className="mt-auto pt-12 relative">
-      <p className="text-lg mb-8">Issued by:</p>
+    <div className="mt-8 relative text-[1.1rem]">
+      <p className="mb-2">Issued by:</p>
       
-      <div className="relative mt-8">
+      <div className="relative mt-8 select-none">
         {/* E-Signature */}
         {assets.signature && (
           <img 
             src={assets.signature} 
             alt="Signature" 
-            className="absolute -top-16 left-4 h-24 w-auto pointer-events-none"
+            className="absolute -top-12 left-4 h-20 w-auto pointer-events-none"
           />
         )}
         
@@ -206,46 +209,235 @@ const CertificateContent = ({
             type="text"
             value={data.signatoryName}
             onChange={(e) => onUpdateData({ signatoryName: e.target.value })}
-            className="w-full bg-transparent font-bold text-lg uppercase underline decoration-1 underline-offset-2 outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            className="w-full bg-transparent font-bold text-lg uppercase outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
             placeholder="[Signatory Name]"
           />
         </div>
-        <div className="relative group">
+        <div className="relative group text-sm text-neutral-600 leading-tight">
           <input
             type="text"
             value={data.signatoryTitle}
             onChange={(e) => onUpdateData({ signatoryTitle: e.target.value })}
-            className="w-full bg-transparent text-xs leading-tight max-w-md outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded"
+            className="w-full bg-transparent text-xs leading-tight max-w-md outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded text-neutral-500"
             placeholder="[Signatory Title]"
           />
         </div>
-        <p className="text-xs">License No. <span className="font-bold relative group">
+        <p className="text-xs text-neutral-500">License No. <span className="font-bold relative group">
           <input
             type="text"
             value={data.licenseNo}
             onChange={(e) => onUpdateData({ licenseNo: e.target.value })}
-            className="inline-block bg-transparent font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded w-auto"
+            className="inline-block bg-transparent font-bold outline-none border-none p-0 m-0 focus:ring-1 focus:ring-blue-400/30 rounded w-auto text-neutral-700"
             placeholder="[License No]"
           />
         </span></p>
       </div>
     </div>
+
+    {/* Dashed separation line cleanly separating the form section */}
+    <div className="border-t-2 border-dashed border-neutral-400/80 my-5 print:border-black"></div>
+
+    {/* Dedicated large white empty space at bottom section of the page specifically intended for photocopying an ID */}
+    <div className="flex-1 flex flex-col justify-center items-center">
+      <span className="text-[10px] tracking-widest text-neutral-300 pointer-events-none uppercase font-mono select-none no-print">
+        - Dedicated space for ID Photocopy -
+      </span>
+    </div>
   </div>
 );
 
+// Sample realistic Philippine Patient Certificates
+const DEFAULT_SAMPLE_COES: IssuedCOE[] = [
+  {
+    id: 'coe_sample_1',
+    data: {
+      patientName: 'Juan Carlos M. dela Cruz',
+      address: 'Brgy. Salvacion, Bayombong, Nueva Vizcaya',
+      classification: 'Indigent',
+      assistanceType: 'Laboratory / Medicine',
+      issuanceDate: 'June 8, 2026',
+      agencyName: DEFAULT_AGENCY,
+      signatoryName: DEFAULT_SIGNATORY,
+      signatoryTitle: DEFAULT_SIGNATORY_TITLE,
+      licenseNo: DEFAULT_LICENSE,
+    },
+    assets: {
+      signature: null,
+      logos: {
+        logo1: { src: DEFAULT_LOGOS.logo1, x: 0, y: 0, width: 96, height: 96 },
+        logo2: { src: DEFAULT_LOGOS.logo2, x: 0, y: 0, width: 96, height: 96 },
+        logo3: { src: DEFAULT_LOGOS.logo3, x: 0, y: 0, width: 96, height: 96 },
+        logo4: { src: DEFAULT_LOGOS.logo4, x: 0, y: 0, width: 144, height: 96 },
+      }
+    },
+    dateIssued: '2026-06-08T09:30:00.000Z'
+  },
+  {
+    id: 'coe_sample_2',
+    data: {
+      patientName: 'Maria Theresa B. Santos',
+      address: 'Brgy. San Jose, Solano, Nueva Vizcaya',
+      classification: 'Financially Incapacitated (C2)',
+      assistanceType: 'CT-Scan / MRI',
+      issuanceDate: 'June 5, 2026',
+      agencyName: DEFAULT_AGENCY,
+      signatoryName: DEFAULT_SIGNATORY,
+      signatoryTitle: DEFAULT_SIGNATORY_TITLE,
+      licenseNo: DEFAULT_LICENSE,
+    },
+    assets: {
+      signature: null,
+      logos: {
+        logo1: { src: DEFAULT_LOGOS.logo1, x: 0, y: 0, width: 96, height: 96 },
+        logo2: { src: DEFAULT_LOGOS.logo2, x: 0, y: 0, width: 96, height: 96 },
+        logo3: { src: DEFAULT_LOGOS.logo3, x: 0, y: 0, width: 96, height: 96 },
+        logo4: { src: DEFAULT_LOGOS.logo4, x: 0, y: 0, width: 144, height: 96 },
+      }
+    },
+    dateIssued: '2026-06-05T14:15:00.000Z'
+  },
+  {
+    id: 'coe_sample_3',
+    data: {
+      patientName: 'Jose Rizal G. Mercado',
+      address: 'Brgy. Quirino, Solano, Nueva Vizcaya',
+      classification: 'Indigent',
+      assistanceType: 'Hospital Bill',
+      issuanceDate: 'June 3, 2026',
+      agencyName: DEFAULT_AGENCY,
+      signatoryName: DEFAULT_SIGNATORY,
+      signatoryTitle: DEFAULT_SIGNATORY_TITLE,
+      licenseNo: DEFAULT_LICENSE,
+    },
+    assets: {
+      signature: null,
+      logos: {
+        logo1: { src: DEFAULT_LOGOS.logo1, x: 0, y: 0, width: 96, height: 96 },
+        logo2: { src: DEFAULT_LOGOS.logo2, x: 0, y: 0, width: 96, height: 96 },
+        logo3: { src: DEFAULT_LOGOS.logo3, x: 0, y: 0, width: 96, height: 96 },
+        logo4: { src: DEFAULT_LOGOS.logo4, x: 0, y: 0, width: 144, height: 96 },
+      }
+    },
+    dateIssued: '2026-06-03T11:00:00.000Z'
+  },
+  {
+    id: 'coe_sample_4',
+    data: {
+      patientName: 'Charmaine Jane C. Mendoza',
+      address: 'Brgy. Vista Alegre, Bayombong, Nueva Vizcaya',
+      classification: 'Financially Capacicated (W/ CHS)',
+      assistanceType: 'Ultrasound / Supplies',
+      issuanceDate: 'June 1, 2026',
+      agencyName: DEFAULT_AGENCY,
+      signatoryName: DEFAULT_SIGNATORY,
+      signatoryTitle: DEFAULT_SIGNATORY_TITLE,
+      licenseNo: DEFAULT_LICENSE,
+    },
+    assets: {
+      signature: null,
+      logos: {
+        logo1: { src: DEFAULT_LOGOS.logo1, x: 0, y: 0, width: 96, height: 96 },
+        logo2: { src: DEFAULT_LOGOS.logo2, x: 0, y: 0, width: 96, height: 96 },
+        logo3: { src: DEFAULT_LOGOS.logo3, x: 0, y: 0, width: 96, height: 96 },
+        logo4: { src: DEFAULT_LOGOS.logo4, x: 0, y: 0, width: 144, height: 96 },
+      }
+    },
+    dateIssued: '2026-06-01T08:45:00.000Z'
+  }
+];
+
+const getFirstName = (fullName: string) => {
+  if (!fullName) return '[No Name]';
+  const parts = fullName.trim().replaceAll(/\s+/g, ' ').split(' ');
+  // Grab the first part as First Name. If it's a common double name (e.g., Maria Theresa, Juan Carlos),
+  // and the second name exists, let's include it, unless it looks like a middle initial (single character with or without dot)
+  if (parts.length > 1) {
+    const secondPart = parts[1];
+    const isMiddleInitial = secondPart.length === 1 || (secondPart.length === 2 && secondPart.endsWith('.'));
+    if (!isMiddleInitial) {
+      return `${parts[0]} ${secondPart}`;
+    }
+  }
+  return parts[0];
+};
+
+const getMaskedFullName = (fullName: string) => {
+  if (!fullName) return '';
+  const parts = fullName.trim().replaceAll(/\s+/g, ' ').split(' ');
+  if (parts.length === 0) return '';
+  
+  const firstName = getFirstName(fullName);
+  const firstNameLength = firstName.split(' ').length;
+  
+  if (parts.length <= firstNameLength) return firstName;
+  
+  const maskedParts = parts.slice(firstNameLength).map(p => {
+    if (p.length === 0) return '';
+    const isMiddleInitial = p.length === 1 || (p.length === 2 && p.endsWith('.'));
+    if (isMiddleInitial) {
+      return '*';
+    }
+    return p[0] + '*'.repeat(Math.min(5, p.length - 1));
+  });
+  return `${firstName} ${maskedParts.join(' ')}`;
+};
+
 export default function App() {
+  const [currentView, setCurrentView] = useState<'generator' | 'list'>('generator');
+  const [issuedList, setIssuedList] = useState<IssuedCOE[]>(() => {
+    const saved = localStorage.getItem('issued_coe_list');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse issued_coe_list:", e);
+      }
+    }
+    return DEFAULT_SAMPLE_COES;
+  });
+
+  // Search & Filters raw inputs
+  const [searchQuery, setSearchQuery] = useState('');
+  const [startDateInput, setStartDateInput] = useState('');
+  const [endDateInput, setEndDateInput] = useState('');
+
+  // Applied filter parameters
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [appliedStartDate, setAppliedStartDate] = useState('');
+  const [appliedEndDate, setAppliedEndDate] = useState('');
+
+  const [printTarget, setPrintTarget] = useState<IssuedCOE | null>(null);
+
   const [pastedText, setPastedText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
-  const [data, setData] = useState<CertificateData>({
-    patientName: '',
-    address: '',
-    classification: 'indigent/ needy patient',
-    assistanceType: '',
-    issuanceDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-    agencyName: DEFAULT_AGENCY,
-    signatoryName: DEFAULT_SIGNATORY,
-    signatoryTitle: DEFAULT_SIGNATORY_TITLE,
-    licenseNo: DEFAULT_LICENSE,
+  const [activeTab, setActiveTab] = useState<'text' | 'image'>('text');
+  const [pastedImage, setPastedImage] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string>('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [extractSuccess, setExtractSuccess] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [data, setData] = useState<CertificateData>(() => {
+    const saved = localStorage.getItem('certificate_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse certificate_data:", e);
+      }
+    }
+    return {
+      patientName: '',
+      address: '',
+      classification: 'indigent/ needy patient',
+      assistanceType: '',
+      issuanceDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      agencyName: DEFAULT_AGENCY,
+      signatoryName: DEFAULT_SIGNATORY,
+      signatoryTitle: DEFAULT_SIGNATORY_TITLE,
+      licenseNo: DEFAULT_LICENSE,
+    };
   });
 
   const [isEditingLogos, setIsEditingLogos] = useState(false);
@@ -253,6 +445,66 @@ export default function App() {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [zoom, setZoom] = useState(55);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleApplyFilters = () => {
+    setAppliedSearch(searchQuery);
+    setAppliedStartDate(startDateInput);
+    setAppliedEndDate(endDateInput);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStartDateInput('');
+    setEndDateInput('');
+    setAppliedSearch('');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
+  };
+
+  const handleDeleteCOE = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this COE historical log entry?")) {
+      const updated = issuedList.filter(item => item.id !== id);
+      setIssuedList(updated);
+      localStorage.setItem('issued_coe_list', JSON.stringify(updated));
+    }
+  };
+
+  const filteredList = issuedList.filter(coe => {
+    // 1. Search Query checking
+    if (appliedSearch.trim()) {
+      const query = appliedSearch.toLowerCase().trim();
+      const patientName = (coe.data.patientName || '').toLowerCase();
+      const classification = (coe.data.classification || '').toLowerCase();
+      const assistance = (coe.data.assistanceType || '').toLowerCase();
+      
+      const matchName = patientName.includes(query);
+      const matchClassification = classification.includes(query);
+      const matchAssistance = assistance.includes(query);
+      
+      if (!matchName && !matchClassification && !matchAssistance) {
+        return false;
+      }
+    }
+
+    // 2. Date filtering
+    if (appliedStartDate || appliedEndDate) {
+      const coeDate = new Date(coe.dateIssued);
+      coeDate.setHours(0,0,0,0);
+      
+      if (appliedStartDate) {
+        const start = new Date(appliedStartDate);
+        start.setHours(0,0,0,0);
+        if (coeDate < start) return false;
+      }
+      if (appliedEndDate) {
+        const end = new Date(appliedEndDate);
+        end.setHours(23,59,59,999);
+        if (coeDate > end) return false;
+      }
+    }
+
+    return true;
+  });
 
   const fitToPage = (ref: React.RefObject<HTMLDivElement | null>) => {
     if (ref.current) {
@@ -273,11 +525,160 @@ export default function App() {
     }
   };
 
-  const handlePrint = () => {
-    // Explicitly focus the window to ensure the print dialog targets the correct context
-    window.focus();
-    // Trigger the native browser print dialog (Chrome/Edge/Safari/Firefox)
-    window.print();
+  const handlePrint = (historicalCoe?: IssuedCOE) => {
+    if (historicalCoe) {
+      setPrintTarget(historicalCoe);
+      setTimeout(() => {
+        executePrint(historicalCoe.data.patientName, true);
+      }, 100);
+    } else {
+      executePrint(data.patientName, false);
+    }
+  };
+
+  const executePrint = (patientName: string, isHistoric: boolean) => {
+    // 1. Open a new window/tab
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to print the certificate.");
+      if (isHistoric) setPrintTarget(null);
+      return;
+    }
+
+    // 2. Grab style sheets
+    let stylesHtml = '';
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(node => {
+      stylesHtml += node.outerHTML;
+    });
+
+    // 3. Grab the inner HTML of the certificate preview
+    const certificateElement = document.getElementById('printable-certificate');
+    if (!certificateElement) {
+      alert("Certificate not found.");
+      if (isHistoric) setPrintTarget(null);
+      return;
+    }
+    const certificateContentHtml = certificateElement.innerHTML;
+
+    // 4. Construct the dynamic HTML document for the printing window
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Certificate of Eligibility - ${patientName || 'Print'}</title>
+          ${stylesHtml}
+          <style>
+            @media print {
+              @page {
+                size: A4;
+                margin: 0;
+              }
+              body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+            }
+            body {
+              background: #f4f4f5;
+              margin: 0;
+              padding: 20px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+            }
+            .print-only {
+              display: block !important;
+            }
+            .certificate-preview {
+              background: white;
+              box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-only" id="printable-certificate">
+            ${certificateContentHtml}
+          </div>
+          <script>
+            window.addEventListener('load', () => {
+              // Add a slight delay to ensure images/fonts have finished rendering
+              setTimeout(() => {
+                window.focus();
+                window.print();
+                window.close();
+              }, 500);
+            });
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    // Reset print target if it was a historical print
+    if (isHistoric) {
+      setPrintTarget(null);
+    } else {
+      // Auto-save the printed document to historical list
+      if (data.patientName.trim()) {
+        const newCoe: IssuedCOE = {
+          id: 'coe_' + Date.now(),
+          data: { ...data },
+          assets: { ...assets },
+          dateIssued: new Date().toISOString()
+        };
+        setIssuedList(prev => {
+          const updated = [newCoe, ...prev];
+          localStorage.setItem('issued_coe_list', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }
+  };
+
+  const processImageFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPastedImage(reader.result as string);
+      setImageMimeType(file.type);
+      setImageName(file.name || "pasted-image.png");
+      setExtractError(null);
+      setExtractSuccess(false);
+      setActiveTab("image");
+      
+      // Auto-trigger analysis!
+      handleImageAnalysis(reader.result as string, file.type);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageAnalysis = async (imgBase64: string, mime: string) => {
+    setIsProcessingImage(true);
+    setExtractError(null);
+    setExtractSuccess(false);
+    try {
+      const parsed = await parsePastedImage(imgBase64, mime);
+      setData(prev => ({
+        ...prev,
+        ...parsed,
+      }));
+      setExtractSuccess(true);
+      setTimeout(() => setExtractSuccess(false), 5000);
+    } catch (error: any) {
+      console.error("Failed to analyze image:", error);
+      setExtractError(error.message || "Could not extract data from the image. Please verify your GEMINI_API_KEY.");
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processImageFile(file);
+    }
   };
 
   // Initial fit and resize listener for main preview
@@ -293,22 +694,64 @@ export default function App() {
       }
     };
 
+    // Global drag & paste handler for document images
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && (target as HTMLInputElement).type !== 'file')) {
+        const items = e.clipboardData?.items;
+        if (items) {
+          let hasFile = false;
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+              hasFile = true;
+              break;
+            }
+          }
+          if (!hasFile) return; // Keep regular text paste behavior in text components
+        }
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            processImageFile(file);
+          }
+        }
+      }
+    };
+
     window.addEventListener('resize', handleResize);
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('paste', handleGlobalPaste);
     
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('paste', handleGlobalPaste);
     };
   }, []);
-  const [assets, setAssets] = useState<CertificateAssets>({
-    signature: null,
-    logos: {
-      logo1: { src: DEFAULT_LOGOS.logo1, x: 0, y: 0, width: 96, height: 96 },
-      logo2: { src: DEFAULT_LOGOS.logo2, x: 0, y: 0, width: 96, height: 96 },
-      logo3: { src: DEFAULT_LOGOS.logo3, x: 0, y: 0, width: 96, height: 96 },
-      logo4: { src: DEFAULT_LOGOS.logo4, x: 0, y: 0, width: 144, height: 96 },
+  const [assets, setAssets] = useState<CertificateAssets>(() => {
+    const saved = localStorage.getItem('certificate_assets');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse certificate_assets:", e);
+      }
     }
+    return {
+      signature: null,
+      logos: {
+        logo1: { src: DEFAULT_LOGOS.logo1, x: 0, y: 0, width: 96, height: 96 },
+        logo2: { src: DEFAULT_LOGOS.logo2, x: 0, y: 0, width: 96, height: 96 },
+        logo3: { src: DEFAULT_LOGOS.logo3, x: 0, y: 0, width: 96, height: 96 },
+        logo4: { src: DEFAULT_LOGOS.logo4, x: 0, y: 0, width: 144, height: 96 },
+      }
+    };
   });
 
   const fileInputRefs = {
@@ -318,14 +761,6 @@ export default function App() {
     logo3: useRef<HTMLInputElement>(null),
     logo4: useRef<HTMLInputElement>(null),
   };
-
-  // Load state from localStorage on mount
-  React.useEffect(() => {
-    const savedData = localStorage.getItem('certificate_data');
-    const savedAssets = localStorage.getItem('certificate_assets');
-    if (savedData) setData(JSON.parse(savedData));
-    if (savedAssets) setAssets(JSON.parse(savedAssets));
-  }, []);
 
   // Save state to localStorage on change
   React.useEffect(() => {
@@ -438,71 +873,236 @@ export default function App() {
       <div className="no-print">
         {/* UI Header - Hidden on Print */}
         <header className="bg-[#1e1e1e] border-b border-zinc-700 py-4 px-6 sticky top-0 z-50 shadow-sm top-nav">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <FileText className="text-white w-6 h-6" />
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 p-2 rounded-lg">
+                <FileText className="text-white w-6 h-6" />
+              </div>
+              <h1 className="text-lg font-semibold tracking-tight text-white whitespace-nowrap">Indigency Certificate Generator</h1>
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-white">Indigency Certificate Generator</h1>
+            
+            {/* Main Tabs Selection - PROFESSIONAL & OPTIMIZED */}
+            <div className="flex p-1 bg-zinc-900 border border-zinc-800 rounded-lg shrink-0">
+              <button
+                onClick={() => setCurrentView('generator')}
+                className={`px-3.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+                  currentView === 'generator'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Certificate Generator
+              </button>
+              <button
+                onClick={() => setCurrentView('list')}
+                className={`px-3.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 relative cursor-pointer ${
+                  currentView === 'list'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                }`}
+              >
+                <History className="w-3.5 h-3.5" />
+                Issued COE List
+                {issuedList.length > 0 && (
+                  <span className="bg-zinc-800 text-blue-400 border border-blue-500/30 font-mono text-[9px] px-1.5 py-0.2 rounded-full font-bold ml-1">
+                    {issuedList.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setIsEditingLogos(!isEditingLogos)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                isEditingLogos ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'text-zinc-400 hover:bg-zinc-700 hover:text-white'
-              }`}
-            >
-              <Settings className={`w-4 h-4 ${isEditingLogos ? 'animate-spin' : ''}`} />
-              {isEditingLogos ? 'Finish Editing' : 'Edit Logos'}
-            </button>
-            <button 
-              onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-md transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Reset
-            </button>
-            <button 
-              onClick={() => setIsHelpOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-md transition-colors"
-            >
-              <FileText className="w-4 h-4" />
-              Help
-            </button>
-            <button 
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-8 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-all shadow-lg shadow-blue-900/20 active:scale-95"
-              title="Open browser print dialog (Ctrl+P)"
-            >
-              <Printer className="w-4 h-4" />
-              Print
-            </button>
+
+          <div className="flex flex-wrap gap-2.5 items-center">
+            {currentView === 'generator' ? (
+              <>
+                <button 
+                  onClick={() => setIsEditingLogos(!isEditingLogos)}
+                  className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer ${
+                    isEditingLogos ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                  }`}
+                >
+                  <Settings className={`w-3.5 h-3.5 ${isEditingLogos ? 'animate-spin' : ''}`} />
+                  {isEditingLogos ? 'Finish Editing' : 'Edit Logos'}
+                </button>
+                <button 
+                  onClick={handleReset}
+                  className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-md transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+                <button 
+                  onClick={() => setIsHelpOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-md transition-colors cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Help
+                </button>
+                <button 
+                  onClick={() => handlePrint()}
+                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-xs font-bold uppercase tracking-wider rounded-md hover:bg-blue-700 transition-all shadow-lg shadow-blue-900/20 active:scale-95 active:bg-blue-800 cursor-pointer"
+                  title="Open browser print dialog (Ctrl+P)"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Print
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={() => setCurrentView('generator')}
+                className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-xs font-bold uppercase tracking-wider rounded-md hover:bg-blue-700 transition-all shadow-md cursor-pointer"
+              >
+                + Generate New COE
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="max-w-7xl mx-auto p-6">
+        {currentView === 'generator' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Input Section */}
         <section className="lg:col-span-4 space-y-6 sidebar edit-details-panel">
-          {/* Data Extraction */}
+          {/* Smart AI Patient Data Importer */}
           <div className="bg-[#1e1e1e] p-6 rounded-xl shadow-sm border border-zinc-700 space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-2 flex items-center gap-2">
-              <ClipboardPaste className="w-4 h-4" />
-              Paste Patient Data
-            </h2>
-            <textarea
-              value={pastedText}
-              onChange={(e) => setPastedText(e.target.value)}
-              placeholder="Paste patient details here..."
-              className="w-full h-32 p-3 text-sm border border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none bg-zinc-900 text-zinc-100 placeholder:text-zinc-600"
-            />
-            <button
-              onClick={handlePaste}
-              disabled={isParsing || !pastedText.trim()}
-              className="w-full mt-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isParsing ? <Loader className="w-4 h-4 animate-spin" /> : 'Auto-Fill Data'}
-            </button>
+            {/* Tab Navigation */}
+            <div className="flex border-b border-zinc-700 pb-2 mb-2">
+              <button
+                onClick={() => setActiveTab('text')}
+                className={`flex-1 pb-1 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 text-center pb-2 ${
+                  activeTab === 'text'
+                    ? 'text-blue-500 border-blue-500'
+                    : 'text-zinc-500 border-transparent hover:text-zinc-300'
+                }`}
+              >
+                Text Paste
+              </button>
+              <button
+                onClick={() => setActiveTab('image')}
+                className={`flex-1 pb-1 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 text-center pb-2 flex items-center justify-center gap-1.5 ${
+                  activeTab === 'image'
+                    ? 'text-blue-500 border-blue-500'
+                    : 'text-zinc-500 border-transparent hover:text-zinc-300'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                Scan Image (AI)
+              </button>
+            </div>
+
+            {activeTab === 'text' ? (
+              <div className="space-y-4">
+                <textarea
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder="Paste clinical text, doctor notes, or referral slips here..."
+                  className="w-full h-34 p-3 text-sm border border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none bg-zinc-900 text-zinc-100 placeholder:text-zinc-600"
+                />
+                <button
+                  onClick={handlePaste}
+                  disabled={isParsing || !pastedText.trim()}
+                  className="w-full py-2.5 bg-blue-600 font-bold hover:bg-blue-500 text-white text-sm rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isParsing ? <Loader className="w-4 h-4 animate-spin" /> : 'Auto-Fill Details'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pastedImage ? (
+                  <div className="space-y-3">
+                    <div className="relative aspect-video rounded-lg border border-zinc-700 overflow-hidden bg-zinc-950 flex items-center justify-center group">
+                      <img src={pastedImage} alt="Uploaded Document" className="max-h-full max-w-full object-contain" />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          onClick={() => {
+                            setPastedImage(null);
+                            setImageMimeType(null);
+                            setImageName('');
+                            setExtractError(null);
+                            setExtractSuccess(false);
+                          }}
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-semibold tracking-wide transition-colors"
+                        >
+                          Clear Image
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-zinc-400 flex items-center justify-between px-1">
+                      <span className="truncate max-w-[180px]" title={imageName}>{imageName}</span>
+                      <span className="text-[10px] bg-zinc-850 text-zinc-300 px-1.5 py-0.5 rounded font-mono">
+                        {imageMimeType ? imageMimeType.split('/')[1].toUpperCase() : 'IMG'}
+                      </span>
+                    </div>
+
+                    {isProcessingImage && (
+                      <div className="bg-blue-950/20 text-blue-400 border border-blue-900/40 p-3 rounded-lg flex items-center gap-2.5 text-xs animate-pulse">
+                        <Loader className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
+                        <span>AI indexing & parsing image contents...</span>
+                      </div>
+                    )}
+
+                    {extractError && (
+                      <div className="bg-red-950/30 text-red-400 border border-red-900/40 p-3 rounded-lg text-xs leading-relaxed font-medium">
+                        <p className="font-bold text-red-500 mb-0.5">Extraction Error:</p>
+                        <p className="text-zinc-300 font-normal">{extractError}</p>
+                      </div>
+                    )}
+
+                    {extractSuccess && (
+                      <div className="bg-emerald-950/20 text-emerald-400 border border-emerald-900/30 p-3 rounded-lg text-xs flex items-center gap-2 font-medium">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                        <span>Filled form details successfully!</span>
+                      </div>
+                    )}
+
+                    {!isProcessingImage && (
+                      <button
+                        onClick={() => handleImageAnalysis(pastedImage, imageMimeType || 'image/png')}
+                        className="w-full py-2 bg-zinc-800 text-zinc-200 text-xs font-medium rounded hover:bg-zinc-700 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Re-Analyze Image
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file && file.type.startsWith('image/')) {
+                        processImageFile(file);
+                      }
+                    }}
+                    onClick={() => imageInputRef.current?.click()}
+                    className="border-2 border-dashed border-zinc-700 hover:border-blue-500 hover:bg-blue-500/5 rounded-xl p-6 text-center cursor-pointer transition-all space-y-3 group"
+                  >
+                    <div className="w-11 h-11 bg-zinc-800 rounded-full flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                      <ImageIcon className="w-5 h-5 text-zinc-500 group-hover:text-blue-400" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-zinc-300 text-xs font-semibold">Click to browse document</p>
+                      <p className="text-zinc-500 text-[10px]">or drag file here or paste image directly via <kbd className="px-1 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px]">Ctrl+V</kbd></p>
+                    </div>
+                    <p className="text-[10px] text-zinc-500/80 leading-snug">
+                      Analyze slips, referral orders, certificates, prescriptions or case details instantly.
+                    </p>
+                    <input
+                      type="file"
+                      ref={imageInputRef}
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      accept="image/*"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Asset Uploads */}
@@ -596,7 +1196,7 @@ export default function App() {
                       className="w-full p-2 text-sm border border-zinc-700 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-zinc-900 text-zinc-100"
                     >
                       <option value="">Select Classification</option>
-                      <option value="Financially Capacitated">Financially Capacitated</option>
+                      <option value="Financially Capacicated (W/ CHS)">Financially Capacicated (W/ CHS)</option>
                       <option value="Financially Incapacitated (C2)">Financially Incapacitated (C2)</option>
                       <option value="Financially Incapacitated (C1)">Financially Incapacitated (C1)</option>
                       <option value="Indigent">Indigent</option>
@@ -728,6 +1328,169 @@ export default function App() {
             </div>
           </div>
         </section>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Title & Description */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <History className="w-5 h-5 text-blue-500" />
+                  Issued Certificates Registry
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1">
+                  View and manage all printed Certificates of Eligibility. In compliance with data privacy standards, patient names are securely masked on-screen.
+                </p>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg text-xs font-mono text-zinc-400">
+                Total Logs: <span className="text-blue-400 font-bold font-sans text-sm">{filteredList.length}</span> of {issuedList.length}
+              </div>
+            </div>
+
+            {/* Filter Control Panel */}
+            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-808 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+              {/* Search Bar */}
+              <div className="md:col-span-5 space-y-1.5">
+                <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Search className="w-3.5 h-3.5 text-zinc-400" />
+                  Search Patients
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by first name, classification, or assistance..."
+                    className="w-full pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-550 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
+                  />
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+                </div>
+              </div>
+
+              {/* Date Start */}
+              <div className="md:col-span-3 space-y-1.5">
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-zinc-405" />
+                  Filter Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDateInput}
+                  onChange={(e) => setStartDateInput(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:dark]"
+                />
+              </div>
+
+              {/* Date End */}
+              <div className="md:col-span-3 space-y-1.5">
+                <label className="block text-[10px] font-bold text-zinc-405 uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-zinc-405" />
+                  Filter End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDateInput}
+                  onChange={(e) => setEndDateInput(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:dark]"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="md:col-span-1 flex gap-2">
+                <button
+                  onClick={handleApplyFilters}
+                  className="flex-1 md:w-auto py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1 shadow cursor-pointer h-9"
+                  title="Apply Filters"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span className="md:hidden">Filter</span>
+                </button>
+                <button
+                  onClick={handleClearFilters}
+                  className="flex-1 md:w-auto py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1 border border-zinc-700 cursor-pointer h-9"
+                  title="Clear Filters"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span className="md:hidden">Clear</span>
+                </button>
+              </div>
+            </div>
+
+            {/* List Table / Registry */}
+            <div className="border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950/30">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-800 bg-zinc-900/40">
+                      <th className="p-4 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Date Logged</th>
+                      <th className="p-4 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Patient Name (Masked for Privacy)</th>
+                      <th className="p-4 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Classification</th>
+                      <th className="p-4 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Assistance Type</th>
+                      <th className="p-4 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Certificate Date</th>
+                      <th className="p-4 text-[10px] font-bold text-zinc-500 uppercase tracking-wider text-right pr-6">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-900 text-sm">
+                    {filteredList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12 text-zinc-500">
+                          <History className="w-8 h-8 text-zinc-705 mx-auto mb-3 animate-pulse" />
+                          <p className="font-semibold text-zinc-400">No matching registry records found</p>
+                          <p className="text-xs text-zinc-600 mt-1">Try refining search query, adjusting date filters, or printing a new certificate.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredList.map((coe) => (
+                        <tr key={coe.id} className="hover:bg-zinc-900/20 transition-colors">
+                          <td className="p-4 font-mono text-xs text-zinc-400 whitespace-nowrap">
+                            {new Date(coe.dateIssued).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-white tracking-wide">{getFirstName(coe.data.patientName)}</span>
+                              <span className="text-[11px] text-zinc-505 font-mono mt-0.5" title="Full patient name masked for privacy and security">{getMaskedFullName(coe.data.patientName)}</span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700 whitespace-nowrap border-zinc-700/60">
+                              {coe.data.classification || 'Indigent'}
+                            </span>
+                          </td>
+                          <td className="p-4 font-medium text-zinc-350">
+                            <div className="max-w-[180px] truncate" title={coe.data.assistanceType}>
+                              {coe.data.assistanceType || '--'}
+                            </div>
+                          </td>
+                          <td className="p-4 text-xs text-zinc-400 whitespace-nowrap">
+                            {coe.data.issuanceDate}
+                          </td>
+                          <td className="p-4 text-right pr-6 whitespace-nowrap">
+                            <div className="flex items-center justify-end">
+                              <button
+                                onClick={() => handlePrint(coe)}
+                                className="p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition-all cursor-pointer flex items-center justify-center shadow"
+                                title="Reprint certificate (recovering complete name details)"
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -841,8 +1604,8 @@ export default function App() {
       <div className="print-only" id="printable-certificate">
         <div className="certificate-preview">
           <CertificateContent 
-            data={data} 
-            assets={assets} 
+            data={printTarget ? printTarget.data : data} 
+            assets={printTarget ? printTarget.assets : assets} 
             isPrintVersion={true}
           />
         </div>
