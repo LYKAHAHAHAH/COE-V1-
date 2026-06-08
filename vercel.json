@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/parse-pasted-data", "destination": "/api/parse-pasted-data.ts" },
+    { "source": "/api/parse-image", "destination": "/api/parse-image.ts" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

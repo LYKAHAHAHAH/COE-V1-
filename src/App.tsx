@@ -462,11 +462,9 @@ export default function App() {
   };
 
   const handleDeleteCOE = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this COE historical log entry?")) {
-      const updated = issuedList.filter(item => item.id !== id);
-      setIssuedList(updated);
-      localStorage.setItem('issued_coe_list', JSON.stringify(updated));
-    }
+    const updated = issuedList.filter(item => item.id !== id);
+    setIssuedList(updated);
+    localStorage.setItem('issued_coe_list', JSON.stringify(updated));
   };
 
   const filteredList = issuedList.filter(coe => {
@@ -1472,13 +1470,20 @@ export default function App() {
                             {coe.data.issuanceDate}
                           </td>
                           <td className="p-4 text-right pr-6 whitespace-nowrap">
-                            <div className="flex items-center justify-end">
+                            <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => handlePrint(coe)}
                                 className="p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition-all cursor-pointer flex items-center justify-center shadow"
                                 title="Reprint certificate (recovering complete name details)"
                               >
                                 <Printer className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCOE(coe.id)}
+                                className="p-1.5 bg-zinc-900 hover:bg-red-950 text-zinc-400 hover:text-red-400 rounded border border-zinc-800 hover:border-red-900/40 transition-all cursor-pointer flex items-center justify-center shadow"
+                                title="Delete Log Entry"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -1495,7 +1500,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="py-8 text-center text-neutral-400 text-xs">
-        <p>© 2026 Indigency Certificate Generator • Powered by Gemini AI</p>
+        <p>© 2026 Certificate of Eligibility Generator</p>
       </footer>
       {/* Help Modal */}
       <AnimatePresence>
