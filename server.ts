@@ -3,7 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { uploadFile, saveCentralAssets, getCentralAssets } from "./api/storage";
+import fs from "fs";
 
 dotenv.config();
 
@@ -149,52 +149,81 @@ app.post("/api/parse-image", async (req, res) => {
   }
 });
 
-// Serve uploaded assets statically
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Shared assets state persistent file path
+const assetsPath = path.join(process.cwd(), "uploads", "assets.json");
 
-// Assets Central Configuration API (GET/POST)
-app.get("/api/assets-config", async (req, res) => {
-  try {
-    const assets = await getCentralAssets();
-    return res.json({ assets: assets || null });
-  } catch (error: any) {
-    console.error("Express Error (assets-config GET):", error);
-    return res.status(500).json({ error: error.message });
+// Maintain an active list of connected clients for global sync (SSE)
+let sseClients: any[] = [];
+
+// Helper function to broadcast to all connected clients
+function broadcastAssetsUpdate(assets: any) {
+  sseClients.forEach((client) => {
+    try {
+      client.write(`data: ${JSON.stringify({ type: "assets-updated", assets })}\n\n`);
+    } catch (err) {
+      console.error("Failed to write to SSE client:", err);
+    }
+  });
+}
+
+// GET API to fetch currently persisted logo and signature assets
+app.get("/api/assets", (req, res) => {
+  if (fs.existsSync(assetsPath)) {
+    try {
+      const data = fs.readFileSync(assetsPath, "utf-8");
+      return res.json(JSON.parse(data));
+    } catch (e: any) {
+      console.error("Error reading assets.json:", e);
+      return res.json({ default: true });
+    }
+  } else {
+    return res.json({ default: true });
   }
 });
 
-app.post("/api/assets-config", async (req, res) => {
+// POST API to update/delete logo and signature assets and trigger global sync
+app.post("/api/assets/update", (req, res) => {
+  const assets = req.body;
   try {
-    const { assets } = req.body;
-    if (!assets) {
-      return res.status(400).json({ error: "Missing 'assets' parameter inside request body." });
+    const uploadsDir = path.dirname(assetsPath);
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
     }
-    await saveCentralAssets(assets);
-    return res.json({ success: true, message: "Central assets saved successfully on the server." });
+    fs.writeFileSync(assetsPath, JSON.stringify(assets, null, 2), "utf-8");
+    
+    // Broadcast the updated assets to all active accounts immediately
+    broadcastAssetsUpdate(assets);
+    
+    return res.json({ success: true, message: "Assets saved and broadcasted successfully." });
   } catch (error: any) {
-    console.error("Express Error (assets-config POST):", error);
-    return res.status(500).json({ error: error.message });
+    console.error("Error saving assets:", error);
+    return res.status(500).json({ error: "Failed to save assets on the server." });
   }
 });
 
-app.post("/api/upload", async (req, res) => {
-  try {
-    const { image, mimeType, type } = req.body;
-    if (!image) {
-      return res.status(400).json({ error: "Missing 'image' base64 raw data." });
-    }
-    if (!type) {
-      return res.status(400).json({ error: "Missing upload 'type' descriptor." });
-    }
+// GET endpoint for Server-Sent Events (SSE) synchronization stream
+app.get("/api/assets/sync", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+  });
+  res.flushHeaders();
 
-    const hostUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
-    const url = await uploadFile(image, mimeType || "image/png", type, hostUrl);
+  // Send an initial handshake event
+  res.write("data: " + JSON.stringify({ type: "connected" }) + "\n\n");
 
-    return res.json({ success: true, url });
-  } catch (error: any) {
-    console.error("Express Error (upload POST):", error);
-    return res.status(500).json({ error: error.message });
-  }
+  sseClients.push(res);
+
+  // Set up keepalive interval to maintain connection alive across idle proxies or load balancers
+  const keepAliveInterval = setInterval(() => {
+    res.write(": keepalive\n\n");
+  }, 15000);
+
+  req.on("close", () => {
+    clearInterval(keepAliveInterval);
+    sseClients = sseClients.filter((client) => client !== res);
+  });
 });
 
 // Configure Vite or Static Files
