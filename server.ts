@@ -30,6 +30,61 @@ function getGeminiClient() {
   });
 }
 
+// Robust retry wrapper for Gemini requests with exponential backoff and multi-model fallback rotation
+async function callGeminiWithRetry(ai: any, params: any, maxRetries = 3) {
+  const requestedModel = params.model || "gemini-3.5-flash";
+  const defaultRotation = ["gemini-3.4-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  
+  // Create a filtered list of unique candidates, starting with requested model
+  const candidates = [requestedModel, ...defaultRotation.filter(m => m !== requestedModel)];
+  
+  let lastError: any = null;
+  
+  for (const modelName of candidates) {
+    let attempt = 0;
+    let delay = 1000;
+    
+    while (attempt < maxRetries) {
+      try {
+        console.log(`Attempting Gemini call with model [${modelName}] (Attempt ${attempt + 1}/${maxRetries})`);
+        return await ai.models.generateContent({
+          ...params,
+          model: modelName
+        });
+      } catch (error: any) {
+        lastError = error;
+        attempt++;
+        const errorMessage = error.message || "";
+        const status = error.status || (error.error && error.error.code);
+        const isTransient = 
+          status === 429 ||
+          status === 503 ||
+          status === 504 ||
+          errorMessage.includes("503") || 
+          errorMessage.includes("UNAVAILABLE") || 
+          errorMessage.includes("demand") ||
+          errorMessage.includes("Resource has been exhausted") ||
+          errorMessage.includes("exhausted");
+        
+        if (isTransient && attempt < maxRetries) {
+          console.warn(`Gemini call with model [${modelName}] failed with transient error ${status || "unknown"}. Retrying in ${delay}ms... Details: ${errorMessage}`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          delay *= 2;
+        } else {
+          if (isTransient) {
+            console.warn(`Model [${modelName}] failed all ${maxRetries} retries with transient error. Trying next fallback model if available...`);
+            break; // Break retry loop to proceed to next model in candidate array
+          } else {
+            throw error; // For non-transient mistakes (e.g. invalid arguments or key issues), fail fast
+          }
+        }
+      }
+    }
+  }
+  
+  throw lastError || new Error("All models in the rotation list failed to generate a response due to transient errors.");
+}
+
 // REST API for Parsing Text
 app.post("/api/parse-pasted-data", async (req, res) => {
   const { text } = req.body;
@@ -39,7 +94,7 @@ app.post("/api/parse-pasted-data", async (req, res) => {
 
   try {
     const ai = getGeminiClient();
-    const response = await ai.models.generateContent({
+    const response = await callGeminiWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: `You are an expert data extractor representing an eligibility verification system.
       Your task is to extract details from the provided clinical text or notes to fill out a "Certificate of Eligibility (Indigency)".
@@ -71,7 +126,7 @@ app.post("/api/parse-pasted-data", async (req, res) => {
       },
     });
 
-    const textResponse = response.text;
+    const textResponse = response?.text;
     if (!textResponse) {
       return res.status(500).json({ error: "Empty reply received from generative model." });
     }
@@ -117,7 +172,7 @@ app.post("/api/parse-image", async (req, res) => {
       5. **Issuance Date**: The date mentioned on the document or the current date. Format as "Month Day, Year" (e.g. "June 8, 2026"). If no date can be found at all, map to today's date formatted similarly.`
     };
 
-    const response = await ai.models.generateContent({
+    const response = await callGeminiWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: { parts: [imagePart, textPart] },
       config: {
@@ -136,7 +191,7 @@ app.post("/api/parse-image", async (req, res) => {
       },
     });
 
-    const textResponse = response.text;
+    const textResponse = response?.text;
     if (!textResponse) {
       return res.status(500).json({ error: "Empty reply received from multimodal model." });
     }
