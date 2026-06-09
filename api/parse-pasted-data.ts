@@ -18,7 +18,7 @@ function getGeminiClient() {
 // Robust retry wrapper for Gemini requests with exponential backoff and multi-model fallback rotation
 async function callGeminiWithRetry(ai: any, params: any, maxRetries = 3) {
   const requestedModel = params.model || "gemini-3.5-flash";
-  const defaultRotation = ["gemini-3.4-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  const defaultRotation = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
   
   // Create a filtered list of unique candidates, starting with requested model
   const candidates = [requestedModel, ...defaultRotation.filter(m => m !== requestedModel)];
@@ -38,9 +38,34 @@ async function callGeminiWithRetry(ai: any, params: any, maxRetries = 3) {
         });
       } catch (error: any) {
         lastError = error;
-        attempt++;
-        const errorMessage = error.message || "";
+        const errorMessage = String(error.message || (error.error && error.error.message) || error);
         const status = error.status || (error.error && error.error.code);
+        
+        // 1. If model is Not Found / Not Supported (404), go to next model immediately (no retry)
+        const isNotFound = 
+          status === 404 || 
+          errorMessage.toLowerCase().includes("not found") || 
+          errorMessage.toLowerCase().includes("not supported");
+          
+        if (isNotFound) {
+          console.warn(`Model [${modelName}] is not found or unsupported. Skipping to next fallback model if available...`);
+          break; // Break retry loop to proceed to next model in candidate array
+        }
+
+        // 2. If it's a hard quota exhaustion (daily limit or similar), skip to next model immediately
+        const isHardQuotaExceeded = 
+          status === 429 && (
+            errorMessage.toLowerCase().includes("quota exceeded") ||
+            errorMessage.toLowerCase().includes("exhausted") ||
+            errorMessage.toLowerCase().includes("limit: 20") ||
+            errorMessage.toLowerCase().includes("free_tier_requests")
+          );
+
+        if (isHardQuotaExceeded) {
+          console.warn(`Model [${modelName}] daily quota is exhausted. Skipping to next fallback model immediately...`);
+          break; // Break retry loop to proceed to next model in candidate array
+        }
+
         const isTransient = 
           status === 429 ||
           status === 503 ||
@@ -48,8 +73,10 @@ async function callGeminiWithRetry(ai: any, params: any, maxRetries = 3) {
           errorMessage.includes("503") || 
           errorMessage.includes("UNAVAILABLE") || 
           errorMessage.includes("demand") ||
-          errorMessage.includes("Resource has been exhausted") ||
-          errorMessage.includes("exhausted");
+          errorMessage.toLowerCase().includes("resource has been exhausted") ||
+          errorMessage.toLowerCase().includes("exhausted");
+        
+        attempt++;
         
         if (isTransient && attempt < maxRetries) {
           console.warn(`Gemini call with model [${modelName}] failed with transient error ${status || "unknown"}. Retrying in ${delay}ms... Details: ${errorMessage}`);
@@ -60,6 +87,7 @@ async function callGeminiWithRetry(ai: any, params: any, maxRetries = 3) {
             console.warn(`Model [${modelName}] failed all ${maxRetries} retries with transient error. Trying next fallback model if available...`);
             break; // Break retry loop to proceed to next model in candidate array
           } else {
+            console.error(`Non-transient error in model [${modelName}]. Propagating error...`);
             throw error; // For non-transient mistakes (e.g. invalid arguments or key issues), fail fast
           }
         }
@@ -67,7 +95,7 @@ async function callGeminiWithRetry(ai: any, params: any, maxRetries = 3) {
     }
   }
   
-  throw lastError || new Error("All models in the rotation list failed to generate a response due to transient errors.");
+  throw lastError || new Error("All models in the rotation list failed to generate a response.");
 }
 
 export default async function handler(req: any, res: any) {
